@@ -1,0 +1,31 @@
+{
+    "name": "niconicoDLer",
+    "author": "Kanji The Grass",
+    "description": "Add a command to download video playing on niconico.",
+    "version": "1.1.0",
+    "manifest_version": 3,
+    "web_accessible_resources": [
+      {
+        "resources": [
+          "./script.js",
+          "./list.json"
+        ],
+        "matches": [ "https://www.nicovideo.jp/*" ]
+      }
+    ],
+    "permissions": [
+      "scripting", "storage"
+    ],
+    "host_permissions": [
+      "https://www.nicovideo.jp/*"
+    ],
+    "content_scripts": [
+      {
+        "matches": [
+          "https://www.nicovideo.jp/watch/*",
+          "https://www.nicovideo.jp/my/mylist*"
+        ],
+        "js": ["script.js"]
+      }
+    ]
+  }

@@ -1,0 +1,14 @@
+{
+  "name": "niconicodler",
+  "version": "1.0.0",
+  "description": "add original mylist and a button to the download link",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kanji the Grass",
+  "license": "ISC",
+  "dependencies": {
+    "fs": "0.0.1-security"
+  }
+}
