@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html lang="ja">
+	<head>
+		<meta charset="utf-8">
+		<script type="text/javascript" src="./script.js"></script>
+		<style>
+			.topUI{
+				position: fixed;
+				z-index: 5000;
+				top: 0;
+				left: 0;
+				width: 100%;
+				background-color: gray;
+				padding: 4px 0
+			}
+			header, main{
+				display: flex;
+				justify-content: space-between;
+				flex-wrap: nowrap;
+			}
+			header button, main button{
+				margin: 0 4px
+			}
+			header button, main *{
+				display: inline-block;
+			}
+			main span{ font-size: large }
+			footer{
+				margin-top: 80px;
+				height: 620px;
+				overflow-y: scroll;
+			}
+			.mylistItem{
+				white-space: nowrap;
+			}
+			.mylistItem iframe{
+				width: 280px;
+				height: 160px;
+				border-width: 0;
+				border: solid 1px #ccc;
+				display: inline-block;
+				vertical-align: top;
+			}
+			.mylistItem .deleteBox{
+				cursor: pointer;
+				width: 40px;
+				height: 160px;
+				border: white solid 1px;
+				display: inline-block;
+				background: red;
+				color: white;
+				vertical-align: center;
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="topUI">
+			<header>
+				<button id="KNS_ADD">ADD</button>
+				<button id="KNS_DL">DOWNLOAD</button>
+				<button id="KNS_SHOW">SHOW</button>
+				<button id="KNS_TEST">TEST</button>
+			</header>
+			<hr>
+			<main>
+				<button>PREV</button>
+				<span>0(0)</span>
+				<select value="0">
+					<option value="0">LATEST</option>
+					<option value="1">OLDEST</option>
+				</select>
+				<button>NEXT</button>
+			</main>
+		</div>
+		<footer>
+		</footer>
+	</body>
+</html>
