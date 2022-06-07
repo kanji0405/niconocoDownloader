@@ -13,9 +13,16 @@
 // - KNS_MainManager
 //============================================================
 class KNS_MainManager{
-	static listMax(){ return 5; }
+	static listMax(){ return 8; }
+	static async getMaxNumber(){
+		const children = await KNS_BookmarkManager.extractFolder();
+		const maxItems = children.length;
+		const maxPage = Math.ceil(maxItems / this.listMax());
+		return [maxPage, maxItems];
+	}
 	static async init(){
 		this.index = 0;
+		KNS_ParentTabManager.closeIfParentChanged()
 		const [tab] = await KNS_ParentTabManager.getParentTab();
 		if (tab){
 			const parsed = KNS_ParentTabManager.parseUrl(
@@ -36,6 +43,17 @@ class KNS_MainManager{
 		this.parseKnsDL(document.getElementById('KNS_DL'), isNiconico);
 		this.parseKnsSHOW(document.getElementById('KNS_SHOW'));
 		this.parseKnsTEST(document.getElementById('KNS_TEST'));
+		document.getElementById('PAGE_PREV').onclick = this.onPaging.bind(this, -1);
+		document.getElementById('PAGE_NEXT').onclick = this.onPaging.bind(this, +1);
+		document.getElementById('KNS_ORDER').onchange = function(){
+			this.index = 0;
+			this.refresh();
+		}.bind(this);
+	}
+	static async onPaging(plus){
+		const [maxPage] = await this.getMaxNumber();
+		this.index = (this.index + maxPage + plus) % maxPage;
+		this.refresh();
 	}
 	static parseKnsADD(button, isNiconico, videoId){
 		if (this.checkButtonHide(button, isNiconico) === false){
@@ -43,7 +61,7 @@ class KNS_MainManager{
 		}
 		return true;
 	}
-	static parseKnsDL(button, isNiconico, url){
+	static parseKnsDL(button, isNiconico){
 		if (this.checkButtonHide(button, isNiconico) === false){
 			button.onclick = this.gotoSourcePage.bind(this);
 		}
@@ -69,21 +87,38 @@ class KNS_MainManager{
 		}
 		return false;
 	}
-	static addVideo(videoId){
-		KNS_BookmarkManager.addUrl(videoId);
+	static async addVideo(videoId){
+		await KNS_BookmarkManager.addUrl(videoId);
 		this.refresh();
 	}
-	static removeVideo(videoId){
-		KNS_BookmarkManager.removeUrl(videoId);
+	static async removeVideo(videoId){
+		await KNS_BookmarkManager.removeUrl(videoId);
 		this.refresh();
 	}
 	static gotoSourcePage(){
 		KNS_ParentTabManager.gotoSourcePage();
 	}
+	static orderBySelection(){
+		const select = document.getElementById('KNS_ORDER');
+		if (select){
+			const option = select.options[select.selectedIndex];
+			return option ? Math.floor(option.value || 0) : 0;
+		}
+		return 0;
+	}
+	static async updateNumber(){
+		const [maxPage, maxItems] = await this.getMaxNumber();
+		const numberDisplay = document.getElementById('PAGE_MAX');
+		numberDisplay.innerText = `${this.index + 1}/${maxPage}(${maxItems})`
+	}
 	static async refresh(){
+		await this.updateNumber();
 		const [drawable] = document.getElementsByTagName('footer');
 		if (drawable){
-			const urlList = await KNS_BookmarkManager.extractFolder();
+			let urlList = await KNS_BookmarkManager.extractFolder();
+			if (this.orderBySelection() === 0){
+				urlList = Array.from(urlList).reverse();
+			}
 			const maxCols = this.listMax();
 			const origin = this.index * maxCols;
 			const last = Math.min(urlList.length, (this.index + 1) * maxCols);
@@ -138,8 +173,9 @@ class KNS_BookmarkManager{
 		return chrome.bookmarks;
 	}
 	static async getAppFolderId(){
+		const bm = this.getChromeBookmarks();
 		try{
-			const [root] = await this.getChromeBookmarks().getTree();
+			const [root] = await bm.getTree();
 			let defaultChild = root.children.find(d => d.id === 1);
 			if (defaultChild === undefined){
 				defaultChild = root.children[0];
@@ -148,7 +184,7 @@ class KNS_BookmarkManager{
 				dir => dir.title === this.ADDON_NAME
 			);
 			if (addonFolder === undefined){
-				return await chrome.bookmarks.create({
+				return await bm.create({
 					parentId: defaultChild.id, title: this.ADDON_NAME
 				}, newFolder => newFolder.id);
 			}else{
@@ -169,11 +205,32 @@ class KNS_BookmarkManager{
 			return [];
 		}
 	}
-	static addUrl(videoId){
-
+	static async getFolderIdAndChildren(){
+		const folderId = await KNS_BookmarkManager.getAppFolderId();
+		const children = await chrome.bookmarks.getChildren(folderId);
+		return [folderId, children];
 	}
-	static removeUrl(videoId){
-
+	static formatVideoIdToBookmark(id){
+		return "https://www.nicovideo.jp/watch/" + id;
+	}
+	static findByURL(url, children){
+		return children.find(obj => obj.url === url);
+	}
+	static async addUrl(videoId){
+		const [folderId, children] = await this.getFolderIdAndChildren();
+		const url = this.formatVideoIdToBookmark(videoId);
+		const item = this.findByURL(url, children);
+		if (!item){
+			return await this.getChromeBookmarks().create({
+				parentId: folderId, title: videoId, url: url
+			});
+		}
+	}
+	static async removeUrl(videoId){
+		const [folderId, children] = await this.getFolderIdAndChildren();
+		const url = this.formatVideoIdToBookmark(videoId);
+		const item = this.findByURL(url, children);
+		if (item) await this.getChromeBookmarks().remove(item.id);
 	}
 }
 
@@ -185,6 +242,11 @@ class KNS_ParentTabManager{
 	static RE_VIDEO_PAGE = this.RE_IS_NICONICO + '\/watch\/([\\w\\d]+)[\?\/]?';
 	static getChromeTabs(){
 		return chrome.tabs;
+	}
+	static closeIfParentChanged(){
+		this.getChromeTabs().onUpdated.addListener(function(tabId, info, tab){
+			window.close();
+		});
 	}
 	static async getParentTab(){
 		const tabs = this.getChromeTabs();
@@ -209,7 +271,7 @@ class KNS_ParentTabManager{
 		if (parent){
 			await this.getChromeTabs().sendMessage(
 				parent.id, { type: 'DL_LINK' }, function(src){
-					if (src.length > 0) this.createNewTab(src);
+					if (src) this.createNewTab(src);
 				}.bind(this)
 			);
 		}
@@ -221,29 +283,3 @@ class KNS_ParentTabManager{
 		this.getChromeTabs().create(options);
 	}
 }
-/*
-
-(function () {
-const oldOnLoad = window.onload;
-window.onload = function () {
-	const myList = document.createElement("a");
-	myList.innerText = "|マイリストに保存";
-	myList.onclick = function(){
-		let movieId = /watch\/(\w{2}\d+)[\/\?]?/.test(location.href) ? RegExp.$1 : false
-		myList.innerText = strRegistered;
-		if (movieId){
-			if(myListArray.includes(movieId)){
-				logTest.innerText = "既に登録済みです";
-			}else{
-				myListArray.push(movieId);
-				localStorage.setItem(storageKey, JSON.stringify(myListArray));
-				logTest.innerText = movieId + "を登録しました。";
-				myListOpen.onclick.call(this);
-			}
-		}else{
-			logTest.innerText = "登録に失敗しました";
-		}
-	}
-})()
-
-*/

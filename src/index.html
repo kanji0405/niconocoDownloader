@@ -26,51 +26,57 @@
 			}
 			main span{ font-size: large }
 			footer{
-				margin-top: 80px;
-				height: 620px;
+				margin-top: 72px;
+				min-width: 652px;
 				overflow-y: scroll;
 			}
 			.mylistItem{
 				white-space: nowrap;
+				display: inline-block;
+				margin-right: 1px;
+				margin-bottom: 1px;
 			}
 			.mylistItem iframe{
-				width: 280px;
-				height: 160px;
-				border-width: 0;
+				width: 270px;
+				height: 127px;
 				border: solid 1px #ccc;
 				display: inline-block;
 				vertical-align: top;
+				border-width: 0 !important;
+				margin: 0;
 			}
 			.mylistItem .deleteBox{
 				cursor: pointer;
 				width: 40px;
-				height: 160px;
-				border: white solid 1px;
+				height: 127px;
 				display: inline-block;
 				background: red;
 				color: white;
-				vertical-align: center;
 				text-align: center;
+				border-width: 0 !important;
+				margin: 0;
 			}
 		</style>
 	</head>
 	<body>
 		<div class="topUI">
 			<header>
-				<button id="KNS_ADD">ADD</button>
 				<button id="KNS_DL">DOWNLOAD</button>
+<!--
 				<button id="KNS_SHOW">SHOW</button>
 				<button id="KNS_TEST">TEST</button>
+-->
+				<button id="KNS_ADD">ADD</button>
 			</header>
 			<hr>
 			<main>
-				<button>PREV</button>
-				<span>0(0)</span>
-				<select value="0">
+				<button id="PAGE_PREV">PREV</button>
+				<span id="PAGE_MAX">1/1(0)</span>
+				<select id="KNS_ORDER" value="0">
 					<option value="0">LATEST</option>
 					<option value="1">OLDEST</option>
 				</select>
-				<button>NEXT</button>
+				<button id="PAGE_NEXT">NEXT</button>
 			</main>
 		</div>
 		<footer>
