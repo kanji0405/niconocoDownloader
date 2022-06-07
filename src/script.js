@@ -20,8 +20,40 @@ class KNS_MainManager{
 		const maxPage = Math.ceil(maxItems / this.listMax());
 		return [maxPage, maxItems];
 	}
+	static RE_COOKIE = /([\w_]+)=([\d\w]+)/g;
+	static loadCookie(){
+		for (let i = 0; i < 2; i++){
+			let match = document.cookie.match(this.RE_COOKIE);
+			if (match){
+				let obj = {};
+				match.forEach(str => {
+					const [key, val] = str.split('=');
+					obj[key] = val;
+				});
+				return obj;
+			}else if (i === 0){
+				this.setCookie({index: 0, order: 0});
+			}
+		}
+		return {};
+	}
+	static setCookie(obj){
+		Object.keys(obj).forEach(key => document.cookie = key + '=' + obj[key]);
+	}
+	static getKnsOrder(){
+		return document.getElementById('KNS_ORDER');
+	}
+	static setPageIndex(n){
+		this.index = n;
+		this.setCookie({index: this.index});
+	}
 	static async init(){
-		this.index = 0;
+		const initValues = this.loadCookie();
+		this.index = Math.floor(initValues.index || 0);
+		const select = this.getKnsOrder();
+		if (select){
+			select.selectedIndex = initValues.order || 0;
+		}
 		KNS_ParentTabManager.closeIfParentChanged()
 		const [tab] = await KNS_ParentTabManager.getParentTab();
 		if (tab){
@@ -45,14 +77,19 @@ class KNS_MainManager{
 		this.parseKnsTEST(document.getElementById('KNS_TEST'));
 		document.getElementById('PAGE_PREV').onclick = this.onPaging.bind(this, -1);
 		document.getElementById('PAGE_NEXT').onclick = this.onPaging.bind(this, +1);
-		document.getElementById('KNS_ORDER').onchange = function(){
-			this.index = 0;
-			this.refresh();
-		}.bind(this);
+		const select = this.getKnsOrder();
+		if (select){
+			select.onchange = function(){
+				this.setPageIndex(0);
+				const opt = select.options[select.selectedIndex];
+				if (opt) this.setCookie({order: opt.value});
+				this.refresh();
+			}.bind(this);
+		}
 	}
 	static async onPaging(plus){
 		const [maxPage] = await this.getMaxNumber();
-		this.index = (this.index + maxPage + plus) % maxPage;
+		this.setPageIndex((this.index + maxPage + plus) % maxPage);
 		this.refresh();
 	}
 	static parseKnsADD(button, isNiconico, videoId){
@@ -70,7 +107,7 @@ class KNS_MainManager{
 	static parseKnsSHOW(button){
 		if (button === null) return false;
 		button.onclick = button.onclick = function(){
-			this.index = 0;
+			this.setPageIndex(0);
 			this.refresh();
 		}.bind(this);
 		return true;
@@ -80,7 +117,7 @@ class KNS_MainManager{
 			button.onclick = async function(){
 				const json = await fetch('./list.json').then(res => res.json());
 				json.forEach(videoId=>KNS_BookmarkManager.addUrl(videoId));
-				this.index = 0;
+				this.setPageIndex(0);
 				this.refresh();
 			}.bind(this);
 			return true;
@@ -99,7 +136,7 @@ class KNS_MainManager{
 		KNS_ParentTabManager.gotoSourcePage();
 	}
 	static orderBySelection(){
-		const select = document.getElementById('KNS_ORDER');
+		const select = this.getKnsOrder();
 		if (select){
 			const option = select.options[select.selectedIndex];
 			return option ? Math.floor(option.value || 0) : 0;
